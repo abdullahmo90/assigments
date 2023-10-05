@@ -1,0 +1,86 @@
+void ADC_init(void)
+{
+	ADMUX&=ADC_VOLTAGE_clear;
+	ADMUX|=ADC_VOLTAGE_SELECTOR;
+
+#if ADC_MODE_SELECTOR ==ADC_AUTO_TRIGGER
+	SET_BIT(ADCSRA,5);
+	SFIOR&=ADC_AUTO_TRIG_clear;
+	SFIOR|=ADC_AUTO_TRIG_SELECTOR;
+#elif ADC_MODE_SELECTOR==ADC_SINGLE_CONVERSION
+	CLR_BIT(ADCSRA,5);
+#endif
+
+#if ADC_ADJUSTMENT_SELECTOR==ADC_RIGHT
+	CLR_BIT(ADMUX,5);
+#elif ADC_ADJUSTMENT_SELECTOR==ADC_LIFT
+	SET_BIT(ADMUX,5);
+#endif
+
+	//clearing interrupt flag
+	SET_BIT(ADCSRA,4);
+	//enable ADC
+	SET_BIT(ADCSRA,7);
+
+
+}
+
+void ADC_StartConversion(Channel_types ADC_Channel)//fun for choice channel
+{
+	ADMUX&=ADC_Channel_clear;
+	ADMUX|=ADC_Channel;
+	//start conversion bit
+	SET_BIT(ADCSRA,6);
+}
+u16 ADC_GetResult(void)
+{
+	while(GET_BIT(ADCSRA,6));
+	return ADCLH;
+}
+
+void LCD_String (u8 *str)
+{
+	int i;
+	for(i=0;str[i]!=0;i++)
+	{
+		sendDATA(str[i]);
+	}
+}
+
+
+typedef enum{
+	ADC_Channel0,
+	ADC_Channel1,
+	ADC_Channel2,
+	ADC_Channel3,
+	ADC_Channel4,
+	ADC_Channel5,
+	ADC_Channel6,
+	ADC_Channel7,
+}Channel_types;
+int main()
+{
+	u16 value;
+	u8 charvalue[8];
+	//LCD ports as output
+	DIO_u8SetPortDirection(PORTA,POUTPUT);
+	DIO_u8SetPortDirection(PORTB,POUTPUT);
+	//potentiometer as input
+	DIO_u8SetPinDirection(PORTA,PIN1,PINPUT);
+	DIO_u8SetPinDirection(PORTD,PIN2,PINPUT);
+	ADC_init();
+	LCD_init();
+
+	while(1)
+	{
+		if((GET_BIT(PIND,2))==1)//bush buttom
+		{
+			ADC_StartConversion(ADC_Channel1);//function for choice cahnnel(resistance)
+			value=ADC_GetResult();//get the voltage value
+			cusor_pos(1,2);//postion on LCD
+			itoa(value,charvalue,10);//change int to string
+			LCD_String(charvalue);
+		}
+	}
+
+}
