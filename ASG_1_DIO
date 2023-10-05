@@ -1,0 +1,28 @@
+int main()
+{
+	//LED2 OUT
+
+	DIO_u8SetPinDirection(PortD,PIN3,POUTPUT);
+	//DIO_u8SetPinValue(PortD,PIN3,DIO_u8HIGH);
+
+	//Blink the LED
+	//The first method
+	/*
+	while(1)
+	{
+		PORTD|=(1<<PIN3);
+		_delay_ms(900);
+		PORTD&=~(1<<PIN3);
+		_delay_ms(900);
+	}
+	*/
+
+
+	//The second method
+/*
+	while(1)
+	{
+		PORTD^=(1<<PIN3);
+		_delay_ms(900);
+	}
+}
