@@ -1,0 +1,165 @@
+void EXITER_EnableGlobal(void)
+{
+	SET_BIT(SREG,PIN7);
+}
+
+void EXITER_Init(void)
+{
+	CLR_BIT(MCUCR,PIN0);//clear exit0 bits
+	CLR_BIT(MCUCR,PIN1);
+	CLR_BIT(MCUCR,PIN2);//clear exit1 bits
+	CLR_BIT(MCUCR,PIN3);
+	CLR_BIT(MCUCSR,PIN6);//clear exit2 bit
+
+
+//Interrupt 0 modes
+#if (EXIT0_MODE ==EXITER_Low_Level)
+	MCUCR|=EXITER_Low_Level;
+#elif (EXIT0_MODE ==EXITER_anyLogical_change)
+	MCUCR|=EXITER_anyLogical_change;
+#elif(EXIT0_MODE ==EXITER_Falling_Edge)
+	MCUCR|=EXITER_Falling_Edge;
+#elif(EXIT0_MODE==EXITER_Rising_Edge)
+	MCUCR|=EXITER_Rising_Edge;
+#endif
+
+
+//Interrupt 1 modes
+#if (EXIT1_MODE ==EXITER_Low_Level)
+	MCUCR|=(EXITER_Low_Level<<2);
+#elif (EXIT1_MODE ==EXITER_anyLogical_change)
+	MCUCR|=(EXITER_anyLogical_change<<2);
+#elif(EXIT1_MODE ==EXITER_Falling_Edge)
+	MCUCR|=(EXITER_Falling_Edge<<2);
+#elif(EXIT1_MODE==EXITER_Rising_Edge)
+	MCUCR|=(EXITER_Rising_Edge<<2);
+#endif
+
+//Interrupt 2 modes
+#if(EXIT2_MODE ==EXITER_INT2Falling_Edge)
+	MCUCSR|=EXITER_INT2Falling_Edge;
+#elif(EXIT2_MODE ==EXITER_INT2Rising_Edge)
+	MCUCSR|=EXITER_INT2Rising_Edge;
+#endif
+
+#if (EXIT_INT0_STATE==EXITER_Disable)
+	CLR_BIT(GICR,6);
+#elif (EXIT_INT0_STATE==EXITER_Enable)
+	SET_BIT(GICR,6);
+#endif
+
+
+#if(EXIT_INT1_STATE==EXITER_Disable)
+	CLR_BIT(GICR,7);
+#elif(EXIT_INT1_STATE==EXITER_Enable)
+	SET_BIT(GICR,7);
+#endif
+
+
+#if(EXIT_INT2_STATE==EXITER_Disable)
+	CLR_BIT(GICR,5);
+#elif(EXIT_INT2_STATE==EXITER_Enable)
+	SET_BIT(GICR,5);
+#endif
+
+
+	//CLEAR FLAGS
+	SET_BIT(GIFR,PIN5);
+	SET_BIT(GIFR,PIN6);
+	SET_BIT(GIFR,PIN7);
+
+}
+
+void EXITER_EnableINT0(void)
+{
+	SET_BIT(GICR,PIN6);
+}
+
+u8 counter_u8ledon=0;
+u8 counter_u8ledoff=0;
+int main()
+{
+//LEDS as output
+	DIO_u8SetPinDirection(PortC,PIN2,POUTPUT);
+	DIO_u8SetPinDirection(PortC,PIN7,POUTPUT);
+	DIO_u8SetPinDirection(PortD,PIN3,POUTPUT);
+
+//GIE enable
+	EXITER_EnableGlobal();
+	EXITER_Init();
+	//choice interrupt 0 because bush buttom 1
+	EXITER_EnableINT0();
+
+
+	while(1)
+	{
+//check the second bush buttom 2 to turn leds off
+		while((GET_BIT(PIND,6)))
+		{
+			if (counter_u8ledon==1)
+			{
+				CLR_BIT(PORTC,2);
+				CLR_BIT(PORTC,7);
+				CLR_BIT(PORTD,3);
+			}
+			else if( counter_u8ledon==2)
+			{
+				SET_BIT(PORTC,2);
+				CLR_BIT(PORTC,7);
+				CLR_BIT(PORTD,3);
+			}
+			else if (counter_u8ledon==3)
+			{
+				SET_BIT(PORTC,2);
+				SET_BIT(PORTC,7);
+				CLR_BIT(PORTD,3);
+			}
+			else if(counter_u8ledon==4)
+			{
+				counter_u8ledon=0;
+			}
+
+		}
+
+
+
+	}
+}
+ISR(INT0_vect)
+{
+//number of counts ==number of leds on
+	counter_u8ledon++;
+	if (counter_u8ledon==0)
+	{
+		DIO_u8SetPinValue(PortC,PIN2,DIO_u8LOW);
+		DIO_u8SetPinValue(PortC,PIN7,DIO_u8LOW);
+		DIO_u8SetPinValue(PortD,PIN3,DIO_u8LOW);
+
+	}
+	else if( counter_u8ledon==1)
+	{
+		DIO_u8SetPinValue(PortC,PIN2,DIO_u8HIGH);
+		DIO_u8SetPinValue(PortC,PIN7,DIO_u8LOW);
+		DIO_u8SetPinValue(PortD,PIN3,DIO_u8LOW);
+
+	}
+	else if(counter_u8ledon==2)
+	{
+		DIO_u8SetPinValue(PortC,PIN2,DIO_u8HIGH);
+		DIO_u8SetPinValue(PortC,PIN7,DIO_u8HIGH);
+		DIO_u8SetPinValue(PortD,PIN3,DIO_u8LOW);
+	}
+	else if (counter_u8ledon==3)
+	{
+		DIO_u8SetPinValue(PortC,PIN2,DIO_u8HIGH);
+		DIO_u8SetPinValue(PortC,PIN7,DIO_u8HIGH);
+		DIO_u8SetPinValue(PortD,PIN3,DIO_u8HIGH);
+
+	}
+	else
+	{
+		counter_u8ledon=0;
+	}
+
+
+}
